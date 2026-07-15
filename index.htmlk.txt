@@ -1,0 +1,2186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevVault — Pro Code Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #090e1a;
+    --surface: #0d1526;
+    --surface2: #111d33;
+    --border: #1e2d4a;
+    --accent: #00e5ff;
+    --accent2: #7c3aed;
+    --accent3: #10b981;
+    --danger: #ef4444;
+    --warn: #f59e0b;
+    --text: #e2e8f0;
+    --text2: #64748b;
+    --text3: #94a3b8;
+    --glow: 0 0 20px rgba(0,229,255,0.15);
+    --radius: 10px;
+
+    /* Syntax Colors */
+    --syn-tag:       #f87171;
+    --syn-attr:      #fbbf24;
+    --syn-string:    #34d399;
+    --syn-comment:   #475569;
+    --syn-keyword:   #a78bfa;
+    --syn-number:    #fb923c;
+    --syn-function:  #60a5fa;
+    --syn-selector:  #f472b6;
+    --syn-property:  #38bdf8;
+    --syn-value:     #4ade80;
+    --syn-operator:  #e2e8f0;
+    --syn-builtin:   #c084fc;
+    --syn-bracket:   #94a3b8;
+    --syn-def:       #facc15;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { height:100%; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    color: var(--accent);
+    text-shadow: 0 0 20px rgba(0,229,255,0.4);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo span { color: var(--text); }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .header-actions { display:flex; gap:10px; align-items:center; }
+
+  /* ── LAYOUT ── */
+  .app {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    height: calc(100vh - 61px);
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .sidebar-header {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .sidebar-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text2);
+  }
+  .sidebar-actions { display:flex; gap:5px; }
+
+  .file-tree {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+  .file-tree::-webkit-scrollbar { width: 4px; }
+  .file-tree::-webkit-scrollbar-track { background: transparent; }
+  .file-tree::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .folder { user-select: none; }
+  .folder-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text3);
+    transition: background 0.15s, color 0.15s;
+  }
+  .folder-header:hover { background: var(--surface2); color: var(--text); }
+  .folder-header .folder-icon { font-size: 12px; transition: transform 0.2s; }
+  .folder-header.open .folder-icon { transform: rotate(90deg); }
+  .folder-name { flex: 1; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .folder-count {
+    background: var(--border);
+    color: var(--text2);
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .folder-dl-btn {
+    opacity: 0;
+    background: none; border: none;
+    color: var(--accent3);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: opacity 0.15s, background 0.15s;
+  }
+  .folder-header:hover .folder-dl-btn { opacity: 1; }
+  .folder-dl-btn:hover { background: rgba(16,185,129,0.15); }
+
+  .folder-children { display: none; }
+  .folder-children.open { display: block; }
+
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px 6px 28px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text3);
+    transition: background 0.15s, color 0.15s;
+    border-left: 2px solid transparent;
+    margin-left: 14px;
+  }
+  .file-item:hover { background: var(--surface2); color: var(--text); }
+  .file-item.active {
+    background: rgba(0,229,255,0.08);
+    color: var(--accent);
+    border-left-color: var(--accent);
+  }
+  .file-icon { font-size: 14px; flex-shrink: 0; }
+  .file-ext-badge {
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-weight: 700;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .ext-html { background: rgba(239,68,68,0.2); color: #f87171; }
+  .ext-css  { background: rgba(59,130,246,0.2); color: #60a5fa; }
+  .ext-js   { background: rgba(245,158,11,0.2); color: #fbbf24; }
+  .ext-py   { background: rgba(16,185,129,0.2); color: #34d399; }
+  .ext-ts   { background: rgba(99,102,241,0.2); color: #818cf8; }
+  .ext-json { background: rgba(236,72,153,0.2); color: #f472b6; }
+  .ext-txt  { background: rgba(148,163,184,0.2); color: #94a3b8; }
+  .ext-md   { background: rgba(251,191,36,0.2); color: #fbbf24; }
+  .ext-other{ background: rgba(100,116,139,0.2); color: #94a3b8; }
+
+  .file-item .file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-delete {
+    opacity: 0;
+    font-size: 13px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: opacity 0.15s, background 0.15s;
+    cursor: pointer;
+    background: none; border: none; color: var(--danger);
+  }
+  .file-item:hover .file-delete { opacity: 1; }
+  .file-delete:hover { background: rgba(239,68,68,0.15); }
+
+  /* ── 3-DOT MENU ── */
+  .file-menu-wrap {
+    position: relative;
+    flex-shrink: 0;
+  }
+  .file-3dot {
+    opacity: 0;
+    background: none;
+    border: none;
+    color: var(--text2);
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 2px 5px;
+    border-radius: 4px;
+    transition: opacity 0.15s, background 0.15s, color 0.15s;
+    line-height: 1;
+  }
+  .file-item:hover .file-3dot,
+  .file-item.active .file-3dot { opacity: 1; }
+  .file-3dot:hover { background: var(--border); color: var(--accent); }
+
+  .file-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    min-width: 140px;
+    z-index: 500;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    overflow: hidden;
+  }
+  .file-dropdown.open { display: block; }
+  .file-dd-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    font-size: 12px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text3);
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+  }
+  .file-dd-item:hover { background: var(--surface2); color: var(--text); }
+  .file-dd-item.danger:hover { background: rgba(239,68,68,0.1); color: var(--danger); }
+
+  /* ── CODE TABLE: disable browser text selection (use Copy button) ── */
+  .code-table { user-select: none; -webkit-user-select: none; }
+  .code-table .line-code { user-select: text; -webkit-user-select: text; }
+
+  /* ── DROP ZONE ── */
+  .drop-zone {
+    margin: 10px;
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 16px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    color: var(--text2);
+    font-size: 12px;
+  }
+  .drop-zone:hover, .drop-zone.dragging {
+    border-color: var(--accent);
+    background: rgba(0,229,255,0.04);
+    color: var(--accent);
+  }
+  .drop-zone .drop-icon { font-size: 22px; margin-bottom: 5px; }
+  .drop-zone p { font-size: 10px; margin-top: 3px; color: var(--text2); }
+  #fileInput { display: none; }
+
+  /* ── MAIN ── */
+  .main {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  /* ── TAB BAR ── */
+  .tab-bar {
+    display: flex;
+    align-items: center;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    flex-shrink: 0;
+  }
+  .tab-bar::-webkit-scrollbar { height: 3px; }
+  .tab-bar::-webkit-scrollbar-thumb { background: var(--border); }
+  .tab {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 16px;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text2);
+    cursor: pointer;
+    border-right: 1px solid var(--border);
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .tab:hover { background: var(--surface2); color: var(--text); }
+  .tab.active {
+    background: var(--bg);
+    color: var(--text);
+    border-bottom: 2px solid var(--accent);
+    margin-bottom: -1px;
+  }
+  .tab.modified .tab-name::after { content: '●'; color: var(--warn); margin-left: 5px; font-size: 10px; }
+  .tab-close {
+    font-size: 13px;
+    opacity: 0.4;
+    cursor: pointer;
+    padding: 1px 3px;
+    border-radius: 3px;
+    transition: opacity 0.15s, background 0.15s;
+    background: none; border: none; color: inherit;
+  }
+  .tab-close:hover { opacity: 1; background: rgba(239,68,68,0.2); color: var(--danger); }
+  .tab.active .tab-close { opacity: 0.6; }
+
+  /* ── TOOLBAR ── */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+  .toolbar-left { display:flex; align-items:center; gap:8px; flex:1; flex-wrap:wrap; }
+  .toolbar-right { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+
+  /* View mode toggle */
+  .view-toggle {
+    display: flex;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .view-btn {
+    padding: 6px 12px;
+    font-size: 11px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--text2);
+    transition: all 0.15s;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .view-btn:hover { color: var(--text); background: var(--surface2); }
+  .view-btn.active { background: var(--accent); color: #000; }
+
+  .search-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .search-icon {
+    position: absolute;
+    left: 10px;
+    color: var(--text2);
+    font-size: 12px;
+    pointer-events: none;
+  }
+  #searchInput {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: var(--radius);
+    padding: 6px 10px 6px 30px;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    width: 200px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  #searchInput:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,229,255,0.1);
+  }
+  #searchInput::placeholder { color: var(--text2); }
+  .search-count {
+    font-size: 10px;
+    color: var(--text2);
+    font-family: 'JetBrains Mono', monospace;
+    margin-left: 5px;
+  }
+  .search-count span { color: var(--accent); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    font-size: 11px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: var(--radius);
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .btn:hover {
+    background: var(--border);
+    border-color: var(--text2);
+    transform: translateY(-1px);
+  }
+  .btn.accent {
+    background: linear-gradient(135deg, var(--accent), #0091ea);
+    border-color: transparent;
+    color: #000;
+  }
+  .btn.accent:hover { filter: brightness(1.1); }
+  .btn.success {
+    background: rgba(16,185,129,0.15);
+    border-color: var(--accent3);
+    color: var(--accent3);
+  }
+  .btn.danger {
+    background: rgba(239,68,68,0.1);
+    border-color: var(--danger);
+    color: var(--danger);
+  }
+  .btn.warn {
+    background: rgba(245,158,11,0.1);
+    border-color: var(--warn);
+    color: var(--warn);
+  }
+  .btn:active { transform: translateY(0); }
+  .btn.copied { background: rgba(16,185,129,0.15); border-color: var(--accent3); color: var(--accent3); }
+
+  /* ── CODE AREA ── */
+  .code-area {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text2);
+    gap: 14px;
+    padding: 40px;
+  }
+  .empty-icon {
+    font-size: 60px;
+    opacity: 0.3;
+    animation: float 3s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  .empty-state h2 { font-size: 20px; font-weight: 700; color: var(--text3); letter-spacing: -0.5px; }
+  .empty-state p { font-size: 13px; text-align: center; max-width: 300px; line-height: 1.6; }
+
+  /* ── CODE VIEWER (Read mode) ── */
+  #codeViewer {
+    flex: 1;
+    overflow: auto;
+    display: none;
+    background: var(--bg);
+    position: relative;
+  }
+  #codeViewer::-webkit-scrollbar { width: 8px; height: 8px; }
+  #codeViewer::-webkit-scrollbar-track { background: var(--surface); }
+  #codeViewer::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  #codeViewer::-webkit-scrollbar-thumb:hover { background: var(--text2); }
+
+  .code-block-wrap { position: relative; }
+
+  .copy-btn-inline {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    z-index: 10;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    padding: 5px 10px;
+    font-size: 10px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s;
+  }
+  .copy-btn-inline:hover { background: rgba(0,229,255,0.15); border-color: var(--accent); color: var(--accent); }
+  .copy-btn-inline.copied { background: rgba(16,185,129,0.15); border-color: var(--accent3); color: var(--accent3); }
+
+  /* ── LINE TABLE ── */
+  .code-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    padding-top: 46px;
+  }
+  .code-table tr:hover td { background: rgba(255,255,255,0.025); }
+  .line-num {
+    color: var(--text2);
+    text-align: right;
+    padding: 0 16px 0 18px;
+    user-select: none;
+    width: 1%;
+    white-space: nowrap;
+    border-right: 1px solid var(--border);
+    font-size: 11px;
+  }
+  .line-code {
+    padding: 0 20px 0 16px;
+    white-space: pre;
+    color: var(--text);
+  }
+
+  .hl { background: rgba(245,158,11,0.35); border-radius: 2px; outline: 1px solid rgba(245,158,11,0.5); }
+
+  /* ── CODE EDITOR ── */
+  #codeEditor {
+    display: none;
+    flex: 1;
+    flex-direction: row;
+    overflow: hidden;
+    background: var(--bg);
+    position: relative;
+  }
+  #lineNumbers {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 12px 14px 12px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text2);
+    text-align: right;
+    min-width: 52px;
+    white-space: pre;
+    overflow: hidden;
+    user-select: none;
+    flex-shrink: 0;
+  }
+  #editorWrap {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+  }
+  #highlightLayer {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    margin: 0;
+    padding: 12px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    white-space: pre;
+    overflow: auto;
+    pointer-events: none;
+    z-index: 1;
+    background: var(--bg);
+    box-sizing: border-box;
+    border: none;
+  }
+  #editorTextarea {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    width: 100%; height: 100%;
+    background: transparent;
+    color: transparent;
+    caret-color: var(--accent);
+    z-index: 2;
+    resize: none;
+    border: none;
+    outline: none;
+    padding: 12px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    white-space: pre;
+    overflow: auto;
+    tab-size: 2;
+    overflow-wrap: normal;
+    -webkit-text-fill-color: transparent;
+    box-sizing: border-box;
+  }
+  #editorTextarea::selection { background: rgba(0,229,255,0.25); -webkit-text-fill-color: transparent; }
+  #editorTextarea::-webkit-scrollbar { width: 8px; height: 8px; }
+  #editorTextarea::-webkit-scrollbar-track { background: var(--surface); }
+  #editorTextarea::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* ── LIVE PREVIEW ── */
+  #livePreview {
+    display: none;
+    flex: 1;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg);
+  }
+  .preview-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .preview-dots { display:flex; gap:6px; }
+  .pdot { width:10px; height:10px; border-radius:50%; }
+  .pdot-r { background:#ef4444; }
+  .pdot-y { background:#f59e0b; }
+  .pdot-g { background:#10b981; }
+  .preview-url {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text3);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #previewIframe {
+    flex: 1;
+    border: none;
+    background: #fff;
+  }
+
+  /* ── STATUS BAR ── */
+  .statusbar {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 4px 18px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text2);
+    flex-shrink: 0;
+  }
+  .statusbar span { display:flex; align-items:center; gap:5px; }
+  .status-dot { width:7px; height:7px; border-radius:50%; background:var(--accent3); flex-shrink:0; }
+  .stat-val { color: var(--text3); }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 26px;
+    min-width: 340px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    animation: modalIn 0.2s ease;
+  }
+  @keyframes modalIn {
+    from { transform: scale(0.94) translateY(-10px); opacity:0; }
+    to   { transform: scale(1) translateY(0); opacity:1; }
+  }
+  .modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 16px; display:flex; align-items:center; gap:8px; }
+  .modal input, .modal select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: var(--radius);
+    padding: 9px 12px;
+    font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
+    outline: none;
+    margin-bottom: 14px;
+    transition: border-color 0.2s;
+  }
+  .modal select option { background: var(--surface); }
+  .modal input:focus, .modal select:focus { border-color: var(--accent); }
+  .modal-actions { display:flex; gap:8px; justify-content:flex-end; }
+  .modal-label { font-size: 11px; color: var(--text2); margin-bottom: 6px; display: block; letter-spacing: 1px; text-transform: uppercase; font-weight: 700; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--surface);
+    border: 1px solid var(--accent3);
+    color: var(--accent3);
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 999;
+    opacity: 0;
+    transform: translateY(16px);
+    transition: all 0.3s ease;
+    pointer-events: none;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  }
+  .toast.show { opacity:1; transform:translateY(0); }
+  .toast.err { border-color:var(--danger); color:var(--danger); }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  @media(max-width:768px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar {
+      display: none;
+      position: fixed;
+      top: 61px;
+      left: 0;
+      width: 80vw;
+      max-width: 300px;
+      height: calc(100vh - 61px);
+      z-index: 200;
+      box-shadow: 4px 0 30px rgba(0,0,0,0.6);
+    }
+    .sidebar.mobile-open { display: flex; }
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 199;
+      top: 61px;
+    }
+    .sidebar-overlay.open { display: block; }
+    .mobile-menu-btn { display: flex !important; }
+    .header-actions { gap: 6px; }
+    .header-actions .btn span { display: none; }
+    #searchInput { width: 140px; }
+  }
+  .mobile-menu-btn { display: none; }
+
+  /* ── SYNTAX HIGHLIGHT CLASSES ── */
+  .tok-tag       { color: var(--syn-tag); }
+  .tok-attr      { color: var(--syn-attr); }
+  .tok-string    { color: var(--syn-string); }
+  .tok-comment   { color: var(--syn-comment); font-style: italic; }
+  .tok-keyword   { color: var(--syn-keyword); font-weight: 600; }
+  .tok-number    { color: var(--syn-number); }
+  .tok-function  { color: var(--syn-function); }
+  .tok-selector  { color: var(--syn-selector); }
+  .tok-property  { color: var(--syn-property); }
+  .tok-value     { color: var(--syn-value); }
+  .tok-operator  { color: var(--syn-operator); }
+  .tok-builtin   { color: var(--syn-builtin); }
+  .tok-bracket   { color: var(--syn-bracket); }
+  .tok-def       { color: var(--syn-def); }
+  .tok-doctype   { color: var(--syn-comment); font-style: italic; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <button class="btn mobile-menu-btn" onclick="toggleMobileSidebar()" style="padding:6px 10px;font-size:16px;" title="Files">☰</button>
+    <div class="logo">
+      <div class="logo-icon">⌨</div>
+      Dev<span>Vault</span>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn" onclick="openNewFileModal()">📄 New File</button>
+    <button class="btn" onclick="openModal()">📁 New Folder</button>
+    <button class="btn" style="background:rgba(16,185,129,0.12);border-color:var(--accent3);color:var(--accent3);" onclick="saveStateToStorage();showToast('All files saved!')" title="Save all to browser storage">💾 Save All</button>
+    <button class="btn accent" onclick="triggerUpload()">⬆ Upload</button>
+  </div>
+</header>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title">Explorer</span>
+      <div class="sidebar-actions">
+        <button class="btn" style="padding:4px 8px;font-size:10px;" title="New File" onclick="openNewFileModal()">📄+</button>
+        <button class="btn" style="padding:4px 8px;font-size:10px;" title="New Folder" onclick="openModal()">📁+</button>
+        <button class="btn" style="padding:4px 8px;font-size:10px;" title="Upload" onclick="triggerUpload()">⬆</button>
+      </div>
+    </div>
+
+    <div class="file-tree" id="fileTree"></div>
+
+    <input type="file" id="fileInput" multiple accept="*">
+
+    <div class="drop-zone" id="dropZone" onclick="triggerUpload()">
+      <div class="drop-icon">🗂</div>
+      <strong>Drop files here</strong>
+      <p>or click to browse</p>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- TAB BAR -->
+    <div class="tab-bar" id="tabBar"></div>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <!-- Mode Toggle -->
+        <div class="view-toggle" id="viewToggle">
+          <button class="view-btn active" id="btnEdit" onclick="setMode('edit')">✏️ Edit</button>
+          <button class="view-btn" id="btnPreview" onclick="setMode('preview')">🌐 Preview</button>
+        </div>
+        <!-- Search -->
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="Search in file...">
+        </div>
+        <span class="search-count" id="searchCount"></span>
+      </div>
+      <div class="toolbar-right">
+        <button class="btn" onclick="saveEdit()" id="saveBtn" title="Save (Ctrl+S)" style="display:none;">💾 Save</button>
+        <button class="btn" onclick="selectAllCode()" title="Select all">☑ Select All</button>
+        <button class="btn" onclick="downloadCurrentFile()" title="Download file">⬇ Download</button>
+        <button class="btn warn" onclick="downloadAllFolders()" title="Download all as ZIP">📦 ZIP All</button>
+        <button class="btn accent" id="copyAllBtn" onclick="copyAllCode()" title="Copy entire file">⎘ Copy All</button>
+      </div>
+    </div>
+
+    <!-- CODE AREA -->
+    <div class="code-area" id="codeArea">
+
+      <!-- Empty State -->
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">🗃</div>
+        <h2>No File Open</h2>
+        <p>Upload a file, drag &amp; drop, or create a new file to start editing your code.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+          <button class="btn accent" onclick="triggerUpload()">⬆ Upload File</button>
+          <button class="btn" onclick="openNewFileModal()">📄 New File</button>
+        </div>
+      </div>
+
+      <!-- Code Viewer -->
+      <div id="codeViewer" oncopy="interceptCopy(event)">
+        <div class="code-block-wrap" id="codeBlockWrap">
+          <button class="copy-btn-inline" id="copyBtnInline" onclick="copyAllCode()">
+            <span>⎘</span><span>Copy</span>
+          </button>
+          <table class="code-table" id="codeTable"><tbody id="codeBody"></tbody></table>
+        </div>
+      </div>
+
+      <!-- Code Editor with Syntax Highlight Overlay -->
+      <div id="codeEditor" style="display:none;">
+        <div id="lineNumbers">1</div>
+        <div id="editorWrap" style="position:relative;flex:1;overflow:hidden;">
+          <!-- Syntax highlight layer (behind) -->
+          <pre id="highlightLayer" aria-hidden="true"
+            style="position:absolute;top:0;left:0;right:0;bottom:0;margin:0;padding:12px 20px;
+            font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.7;
+            white-space:pre;overflow:auto;pointer-events:none;z-index:1;
+            background:transparent;color:transparent;box-sizing:border-box;"></pre>
+          <!-- Actual textarea (on top, transparent text so highlight shows) -->
+          <textarea id="editorTextarea" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"
+            oninput="onEditorInput()" onscroll="syncScroll()" onkeydown="editorKeydown(event)"
+            placeholder="Start typing..."
+            style="position:absolute;top:0;left:0;right:0;bottom:0;width:100%;height:100%;
+            background:transparent;color:transparent;caret-color:#00e5ff;
+            z-index:2;resize:none;border:none;outline:none;padding:12px 20px;
+            font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.7;
+            white-space:pre;overflow:auto;tab-size:2;overflow-wrap:normal;
+            -webkit-text-fill-color:transparent;"></textarea>
+        </div>
+      </div>
+
+      <!-- Live Preview -->
+      <div id="livePreview" style="display:none;">
+        <div class="preview-bar">
+          <div class="preview-dots">
+            <div class="pdot pdot-r"></div>
+            <div class="pdot pdot-y"></div>
+            <div class="pdot pdot-g"></div>
+          </div>
+          <div class="preview-url" id="previewUrl">about:blank</div>
+          <button class="btn" style="padding:4px 10px;font-size:10px;" onclick="refreshPreview()">↺ Refresh</button>
+        </div>
+        <iframe id="previewIframe" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" allow="fullscreen"></iframe>
+      </div>
+
+    </div>
+
+    <!-- STATUS BAR -->
+    <div class="statusbar">
+      <span><span class="status-dot"></span> DevVault</span>
+      <span>Lines: <span class="stat-val" id="statLines">—</span></span>
+      <span>Chars: <span class="stat-val" id="statChars">—</span></span>
+      <span>File: <span class="stat-val" id="statFile">None</span></span>
+      <span>Size: <span class="stat-val" id="statSize">—</span></span>
+      <span style="color:var(--accent3);font-size:10px;" id="statSaved" title="Auto-saved to browser storage">💾 Saved</span>
+      <span id="statMode" style="margin-left:auto;color:var(--accent);font-weight:700;">VIEW</span>
+    </div>
+  </main>
+</div>
+
+<!-- MODAL: New Folder -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3>📁 New Folder</h3>
+    <label class="modal-label">Folder Name</label>
+    <input type="text" id="folderNameInput" placeholder="my-project" maxlength="40">
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn accent" onclick="createFolder()">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: New File -->
+<div class="modal-overlay" id="newFileModal">
+  <div class="modal">
+    <h3>📄 New File</h3>
+    <label class="modal-label">File Name</label>
+    <input type="text" id="newFileName" placeholder="index.html" maxlength="80">
+    <label class="modal-label">In Folder</label>
+    <select id="newFileFolderSelect"></select>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeNewFileModal()">Cancel</button>
+      <button class="btn accent" onclick="createNewFile()">Create & Open</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Rename File -->
+<div class="modal-overlay" id="renameModal">
+  <div class="modal">
+    <h3>✎ Rename File</h3>
+    <label class="modal-label">New File Name</label>
+    <input type="text" id="renameInput" placeholder="index.html" maxlength="100">
+    <div class="modal-actions">
+      <button class="btn" onclick="closeRenameModal()">Cancel</button>
+      <button class="btn accent" onclick="confirmRename()">Rename</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ────────────────────────────────────────
+//  STATE
+// ────────────────────────────────────────
+// ────────────────────────────────────────
+//  LOCALSTORAGE PERSISTENCE
+// ────────────────────────────────────────
+const STORAGE_KEY = 'devvault_v2';
+
+function loadStateFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch(e) { return null; }
+}
+
+function saveStateToStorage() {
+  try {
+    const toSave = {
+      folders: state.folders,
+      activeFolder: state.activeFolder,
+      tabs: state.tabs.map(t => ({ id: t.id, name: t.name, ext: t.ext })),
+      activeTab: state.activeTab,
+      nextId: nextId,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+  } catch(e) { console.warn('Save failed', e); }
+}
+
+function clearAllStorage() {
+  if (!confirm('सभी saved files delete हो जाएंगी। क्या आप sure हैं?')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+
+const _savedState = loadStateFromStorage();
+
+const state = {
+  folders: _savedState ? _savedState.folders : [{ id: 'default', name: '📂 Uploads', files: [] }],
+  activeFolder: _savedState ? _savedState.activeFolder : 'default',
+  tabs: [],
+  activeTab: _savedState ? _savedState.activeTab : null,
+  searchQuery: '',
+  mode: 'edit',
+};
+
+let nextId = _savedState ? (_savedState.nextId || 1) : 1;
+
+// Restore tabs from saved state
+if (_savedState && _savedState.tabs) {
+  _savedState.tabs.forEach(savedTab => {
+    for (const folder of state.folders) {
+      const f = folder.files.find(f => f.id === savedTab.id);
+      if (f) { state.tabs.push(f); break; }
+    }
+  });
+}
+
+// Auto-save on any state change — debounced
+let _saveTimer = null;
+function scheduleSave() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(saveStateToStorage, 800);
+}
+
+const uid = () => 'f' + (nextId++);
+const $ = id => document.getElementById(id);
+
+// ────────────────────────────────────────
+//  TOAST
+// ────────────────────────────────────────
+function showToast(msg, err=false) {
+  const t = $('toast');
+  t.textContent = (err ? '✗ ' : '✓ ') + msg;
+  t.className = 'toast show' + (err ? ' err' : '');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+// ────────────────────────────────────────
+//  UPLOAD / DROP
+// ────────────────────────────────────────
+function triggerUpload() { $('fileInput').click(); }
+
+$('fileInput').addEventListener('change', e => {
+  [...e.target.files].forEach(readFileObj);
+  e.target.value = '';
+});
+
+const dz = $('dropZone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragging'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('dragging'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('dragging');
+  [...e.dataTransfer.files].forEach(readFileObj);
+});
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', e => {
+  if (e.target === dz || dz.contains(e.target)) return;
+  e.preventDefault();
+  [...e.dataTransfer.files].forEach(readFileObj);
+});
+
+function readFileObj(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const content = ev.target.result;
+    const ext = (file.name.split('.').pop() || 'txt').toLowerCase();
+    const id = uid();
+    const entry = { id, name: file.name, content, ext, size: file.size, folderId: state.activeFolder, modified: false };
+    const folder = state.folders.find(f => f.id === state.activeFolder);
+    if (folder) folder.files.push(entry);
+    openTab(entry);
+    renderFileTree();
+    scheduleSave();
+    showToast(`Opened ${file.name}`);
+  };
+  reader.readAsText(file);
+}
+
+// ────────────────────────────────────────
+//  FILE ICONS
+// ────────────────────────────────────────
+function fileIcon(name, ext) {
+  const lower = name.toLowerCase();
+  if (lower === 'index.html' || lower === 'index.htm') return '🏠';
+  if (ext === 'html' || ext === 'htm') return '🌐';
+  if (ext === 'css') return '🎨';
+  if (ext === 'js') return '⚡';
+  if (ext === 'ts') return '🔷';
+  if (ext === 'py') return '🐍';
+  if (ext === 'json') return '{}';
+  if (ext === 'md') return '📝';
+  if (ext === 'txt') return '📄';
+  if (ext === 'png' || ext === 'jpg' || ext === 'jpeg' || ext === 'gif' || ext === 'svg' || ext === 'webp') return '🖼';
+  if (ext === 'xml') return '📋';
+  if (ext === 'sh' || ext === 'bash') return '⚙';
+  if (ext === 'sql') return '🗄';
+  return '📄';
+}
+
+// ────────────────────────────────────────
+//  FOLDER MODAL
+// ────────────────────────────────────────
+function openModal() {
+  $('folderNameInput').value = '';
+  $('modalOverlay').classList.add('open');
+  setTimeout(() => $('folderNameInput').focus(), 80);
+}
+function closeModal() { $('modalOverlay').classList.remove('open'); }
+
+$('modalOverlay').addEventListener('click', e => { if (e.target === $('modalOverlay')) closeModal(); });
+$('folderNameInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') createFolder();
+  if (e.key === 'Escape') closeModal();
+});
+
+function createFolder() {
+  const name = $('folderNameInput').value.trim();
+  if (!name) return;
+  const id = uid();
+  state.folders.push({ id, name: '📂 ' + name, files: [] });
+  state.activeFolder = id;
+  closeModal();
+  renderFileTree();
+  showToast(`Folder "${name}" created`);
+}
+
+function deleteFolder(id) {
+  if (state.folders.length === 1) { showToast('Cannot delete the last folder', true); return; }
+  const folder = state.folders.find(f => f.id === id);
+  if (!folder) return;
+  folder.files.forEach(file => {
+    state.tabs = state.tabs.filter(t => t.id !== file.id);
+    if (state.activeTab === file.id) state.activeTab = null;
+  });
+  state.folders = state.folders.filter(f => f.id !== id);
+  if (state.activeFolder === id) state.activeFolder = state.folders[0].id;
+  if (!state.activeTab && state.tabs.length) state.activeTab = state.tabs[state.tabs.length-1].id;
+  renderAll();
+  showToast('Folder deleted');
+}
+
+// ────────────────────────────────────────
+//  NEW FILE MODAL
+// ────────────────────────────────────────
+function openNewFileModal() {
+  $('newFileName').value = '';
+  // Populate folder select
+  const sel = $('newFileFolderSelect');
+  sel.innerHTML = state.folders.map(f =>
+    `<option value="${f.id}" ${f.id === state.activeFolder ? 'selected' : ''}>${f.name.replace('📂 ', '')}</option>`
+  ).join('');
+  $('newFileModal').classList.add('open');
+  setTimeout(() => $('newFileName').focus(), 80);
+}
+function closeNewFileModal() { $('newFileModal').classList.remove('open'); }
+
+$('newFileModal').addEventListener('click', e => { if (e.target === $('newFileModal')) closeNewFileModal(); });
+$('newFileName').addEventListener('keydown', e => {
+  if (e.key === 'Enter') createNewFile();
+  if (e.key === 'Escape') closeNewFileModal();
+});
+
+function createNewFile() {
+  const name = $('newFileName').value.trim();
+  if (!name) { showToast('Enter a file name', true); return; }
+  const folderId = $('newFileFolderSelect').value;
+  const ext = (name.split('.').pop() || 'txt').toLowerCase();
+  const id = uid();
+  const starter = getStarterContent(name, ext);
+  const entry = { id, name, content: starter, ext, size: starter.length, folderId, modified: false };
+  const folder = state.folders.find(f => f.id === folderId);
+  if (folder) folder.files.push(entry);
+  state.activeFolder = folderId;
+  closeNewFileModal();
+  openTab(entry);
+  renderFileTree();
+  setMode('edit');
+  showToast(`Created ${name}`);
+}
+
+function getStarterContent(name, ext) {
+  if (ext === 'html') {
+    const title = name.replace(/\.html?$/i, '').replace(/[-_]/g, ' ');
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title}</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>${title}</h1>
+  <p>Welcome to your new page.</p>
+  <script>
+    // Your JavaScript here
+  <\/script>
+</body>
+</html>`;
+  }
+  if (ext === 'css') return `/* Styles */\n\nbody {\n  margin: 0;\n  padding: 0;\n  font-family: sans-serif;\n}\n`;
+  if (ext === 'js') return `// JavaScript\n\nconsole.log('Hello, World!');\n`;
+  if (ext === 'ts') return `// TypeScript\n\nconst greet = (name: string): string => {\n  return \`Hello, \${name}!\`;\n};\n\nconsole.log(greet('World'));\n`;
+  if (ext === 'py') return `# Python\n\ndef main():\n    print("Hello, World!")\n\nif __name__ == "__main__":\n    main()\n`;
+  if (ext === 'json') return `{\n  "name": "my-project",\n  "version": "1.0.0"\n}\n`;
+  if (ext === 'md') return `# ${name.replace(/\.md$/i,'')}\n\n## Introduction\n\nWrite your content here.\n`;
+  return '';
+}
+
+// ────────────────────────────────────────
+//  FILE TREE
+// ────────────────────────────────────────
+function extBadge(ext) {
+  const safe = ['html','css','js','ts','py','json','txt','md'];
+  const cls = safe.includes(ext) ? `ext-${ext}` : 'ext-other';
+  return `<span class="file-ext-badge ${cls}">${ext}</span>`;
+}
+
+function renderFileTree() {
+  const tree = $('fileTree');
+  tree.innerHTML = state.folders.map(folder => `
+    <div class="folder" id="folder-${folder.id}">
+      <div class="folder-header open" onclick="toggleFolder('${folder.id}', this)" ondblclick="state.activeFolder='${folder.id}'">
+        <span class="folder-icon">▶</span>
+        <span class="folder-name">${folder.name}</span>
+        <span class="folder-count">${folder.files.length}</span>
+        <button class="folder-dl-btn" onclick="event.stopPropagation();downloadFolder('${folder.id}')" title="Download folder as ZIP">⬇</button>
+        ${folder.id !== 'default' ? `<button class="file-delete" style="opacity:0;" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0" onclick="event.stopPropagation();deleteFolder('${folder.id}')" title="Delete folder">✕</button>` : ''}
+      </div>
+      <div class="folder-children open" id="fc-${folder.id}">
+        ${folder.files.length === 0
+          ? `<div style="padding:6px 28px;font-size:11px;color:var(--text2);font-style:italic;">Empty folder</div>`
+          : folder.files.map(file => `
+          <div class="file-item ${state.activeTab === file.id ? 'active' : ''}"
+               onclick="openTab(${JSON.stringify(file).replace(/"/g,'&quot;')})">
+            <span class="file-icon">${fileIcon(file.name, file.ext)}</span>
+            ${extBadge(file.ext)}
+            <span class="file-name" title="${file.name}">${file.name}</span>
+            <div class="file-menu-wrap" onclick="event.stopPropagation()">
+              <button class="file-3dot" onclick="toggleFileMenu('${file.id}')" title="Options">⋮</button>
+              <div class="file-dropdown" id="fdrop-${file.id}">
+                <button class="file-dd-item" onclick="closeAllMenus();startRename('${file.id}')">✎ &nbsp;Rename</button>
+                <button class="file-dd-item" onclick="closeAllMenus();downloadFileById('${file.id}')">⬇ &nbsp;Download</button>
+                <button class="file-dd-item danger" onclick="closeAllMenus();deleteFile('${file.id}','${folder.id}')">✕ &nbsp;Delete</button>
+              </div>
+            </div>
+          </div>`).join('')
+        }
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleFolder(id, el) {
+  el.classList.toggle('open');
+  const children = $('fc-' + id);
+  if (children) children.classList.toggle('open');
+}
+
+function deleteFile(fileId, folderId) {
+  const folder = state.folders.find(f => f.id === folderId);
+  if (folder) folder.files = folder.files.filter(f => f.id !== fileId);
+  state.tabs = state.tabs.filter(t => t.id !== fileId);
+  if (state.activeTab === fileId) {
+    state.activeTab = state.tabs.length ? state.tabs[state.tabs.length-1].id : null;
+  }
+  renderAll();
+  scheduleSave();
+  showToast('File removed');
+}
+
+// ────────────────────────────────────────
+//  RENAME FILE
+// ────────────────────────────────────────
+let _renamingFileId = null;
+
+function startRename(fileId) {
+  const file = getLiveFile(fileId);
+  if (!file) return;
+  _renamingFileId = fileId;
+  $('renameInput').value = file.name;
+  $('renameModal').classList.add('open');
+  setTimeout(() => {
+    const inp = $('renameInput');
+    inp.focus();
+    // Select just the name part, not extension
+    const dot = file.name.lastIndexOf('.');
+    inp.setSelectionRange(0, dot > 0 ? dot : file.name.length);
+  }, 80);
+}
+
+function closeRenameModal() {
+  $('renameModal').classList.remove('open');
+  _renamingFileId = null;
+}
+
+function confirmRename() {
+  const newName = $('renameInput').value.trim();
+  if (!newName) { showToast('नाम खाली नहीं हो सकता', true); return; }
+  if (!_renamingFileId) return;
+
+  const newExt = (newName.split('.').pop() || 'txt').toLowerCase();
+
+  // Update in folders
+  for (const folder of state.folders) {
+    const file = folder.files.find(f => f.id === _renamingFileId);
+    if (file) {
+      file.name = newName;
+      file.ext = newExt;
+      break;
+    }
+  }
+  // Update in tabs
+  const tab = state.tabs.find(t => t.id === _renamingFileId);
+  if (tab) { tab.name = newName; tab.ext = newExt; }
+
+  closeRenameModal();
+  renderAll();
+  scheduleSave();
+  showToast(`Renamed to "${newName}"`);
+}
+
+$('renameModal').addEventListener('click', e => { if (e.target === $('renameModal')) closeRenameModal(); });
+$('renameInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') confirmRename();
+  if (e.key === 'Escape') closeRenameModal();
+});
+
+// ────────────────────────────────────────
+//  TABS
+// ────────────────────────────────────────
+function openTab(file) {
+  // Sync latest content from all folders
+  let latest = null;
+  for (const folder of state.folders) {
+    const f = folder.files.find(f => f.id === file.id);
+    if (f) { latest = f; break; }
+  }
+  if (latest) file = latest;
+
+  if (!state.tabs.find(t => t.id === file.id)) state.tabs.push(file);
+  state.activeTab = file.id;
+  state.searchQuery = '';
+  $('searchInput').value = '';
+  renderAll();
+  // Auto-switch to edit if in preview but file is not HTML
+  if (state.mode === 'preview' && file.ext !== 'html' && file.ext !== 'htm') {
+    setMode('edit');
+  }
+}
+
+function closeTab(id) {
+  const idx = state.tabs.findIndex(t => t.id === id);
+  state.tabs.splice(idx, 1);
+  if (state.activeTab === id) {
+    state.activeTab = state.tabs.length ? state.tabs[Math.max(0, idx-1)].id : null;
+  }
+  renderAll();
+}
+
+function renderTabs() {
+  const bar = $('tabBar');
+  bar.innerHTML = state.tabs.map(tab => {
+    const live = getLiveFile(tab.id);
+    const mod = live && live.modified ? ' modified' : '';
+    return `<div class="tab${state.activeTab === tab.id ? ' active' : ''}${mod}"
+         onclick="openTab(${JSON.stringify({id:tab.id,name:tab.name,ext:tab.ext}).replace(/"/g,'&quot;')})">
+      <span>${fileIcon(tab.name, tab.ext)}</span>
+      <span class="tab-name">${tab.name}</span>
+      <button class="tab-close" onclick="event.stopPropagation();closeTab('${tab.id}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function getLiveFile(id) {
+  for (const folder of state.folders) {
+    const f = folder.files.find(f => f.id === id);
+    if (f) return f;
+  }
+  return state.tabs.find(t => t.id === id) || null;
+}
+
+function getActiveFile() {
+  if (!state.activeTab) return null;
+  return getLiveFile(state.activeTab);
+}
+
+// ────────────────────────────────────────
+//  VIEW MODES
+// ────────────────────────────────────────
+function setMode(mode) {
+  const file = getActiveFile();
+  const isHtml = file && (file.ext === 'html' || file.ext === 'htm');
+
+  // Save editor content before switching
+  if (state.mode === 'edit') saveEdit(true);
+
+  state.mode = mode;
+
+  $('emptyState').style.display = 'none';
+  $('codeViewer').style.display = 'none';
+  $('codeEditor').style.display = 'none';
+  $('livePreview').style.display = 'none';
+  $('saveBtn').style.display = 'none';
+
+  if (!file) {
+    $('emptyState').style.display = 'flex';
+    $('statMode').textContent = '';
+    updateModeBtns();
+    return;
+  }
+
+  if (mode === 'edit') {
+    $('codeEditor').style.display = 'flex';
+    $('saveBtn').style.display = 'inline-flex';
+    $('statMode').textContent = 'EDIT';
+    loadEditor(file);
+  } else if (mode === 'preview') {
+    if (!isHtml) {
+      showToast('Preview sirf HTML files ke liye hai', true);
+      state.mode = 'edit';
+      $('codeEditor').style.display = 'flex';
+      $('saveBtn').style.display = 'inline-flex';
+      $('statMode').textContent = 'EDIT';
+      loadEditor(file);
+    } else {
+      $('livePreview').style.display = 'flex';
+      $('statMode').textContent = 'PREVIEW';
+      setTimeout(() => refreshPreview(), 50);
+    }
+  }
+  updateModeBtns();
+}
+
+function updateModeBtns() {
+  ['edit','preview'].forEach(m => {
+    const el = $('btn' + m.charAt(0).toUpperCase() + m.slice(1));
+    if (el) el.classList.toggle('active', m === state.mode);
+  });
+}
+
+// ────────────────────────────────────────
+//  EDITOR
+// ────────────────────────────────────────
+function loadEditor(file) {
+  const ta = $('editorTextarea');
+  ta.value = file.content;
+  updateLineNumbers();
+  updateHighlight(file);
+  // Sync scroll after load
+  setTimeout(() => syncScroll(), 10);
+}
+
+function updateHighlight(file) {
+  if (!file) file = getActiveFile();
+  if (!file) return;
+  const layer = $('highlightLayer');
+  if (!layer) return;
+  const highlighted = highlight(file.content, file.ext);
+  // Add a trailing newline so last line renders correctly
+  layer.innerHTML = highlighted + '\n';
+}
+
+function onEditorInput() {
+  updateLineNumbers();
+  const file = getActiveFile();
+  if (!file) return;
+  file.content = $('editorTextarea').value;
+  file.modified = true;
+  file.size = file.content.length;
+  $('statLines').textContent = file.content.split('\n').length.toLocaleString();
+  $('statChars').textContent = file.content.length.toLocaleString();
+  updateHighlight(file);
+  renderTabs();
+  scheduleSave();
+}
+
+function updateLineNumbers() {
+  const ta = $('editorTextarea');
+  const lines = ta.value.split('\n').length;
+  let nums = '';
+  for (let i = 1; i <= lines; i++) nums += i + '\n';
+  $('lineNumbers').textContent = nums;
+}
+
+function syncScroll() {
+  const ta = $('editorTextarea');
+  const layer = $('highlightLayer');
+  const ln = $('lineNumbers');
+  if (layer) { layer.scrollTop = ta.scrollTop; layer.scrollLeft = ta.scrollLeft; }
+  if (ln) ln.scrollTop = ta.scrollTop;
+}
+
+function editorKeydown(e) {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const ta = $('editorTextarea');
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    ta.value = ta.value.substring(0, start) + '  ' + ta.value.substring(end);
+    ta.selectionStart = ta.selectionEnd = start + 2;
+    onEditorInput();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    saveEdit();
+  }
+}
+
+function saveEdit(silent=false) {
+  const file = getActiveFile();
+  if (!file) return;
+  const newContent = $('editorTextarea').value;
+  file.content = newContent;
+  file.size = newContent.length;
+  file.modified = false;
+  renderTabs();
+  renderFileTree();
+  scheduleSave();
+  if (!silent) showToast(`Saved ${file.name}`);
+  renderCode();
+}
+
+// ────────────────────────────────────────
+//  LIVE PREVIEW
+// ────────────────────────────────────────
+function refreshPreview() {
+  const file = getActiveFile();
+  if (!file || (file.ext !== 'html' && file.ext !== 'htm')) return;
+  const iframe = $('previewIframe');
+
+  // Save editor content first if in edit mode
+  if (state.mode === 'edit') {
+    const ta = $('editorTextarea');
+    if (ta && ta.value) file.content = ta.value;
+  }
+
+  // Use srcdoc for maximum compatibility (works on Android, local files, etc.)
+  // Revoke old blob if any
+  if (iframe._blobUrl) { URL.revokeObjectURL(iframe._blobUrl); iframe._blobUrl = null; }
+
+  try {
+    // Method 1: srcdoc (best compatibility)
+    iframe.srcdoc = file.content;
+    $('previewUrl').textContent = file.name + ' (live preview)';
+    showToast('Preview updated ✓');
+  } catch(e) {
+    // Method 2: Blob URL fallback
+    try {
+      const blob = new Blob([file.content], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      iframe._blobUrl = url;
+      iframe.src = url;
+      $('previewUrl').textContent = file.name + ' (live preview)';
+    } catch(e2) {
+      showToast('Preview failed. Try another browser.', true);
+    }
+  }
+}
+
+// ────────────────────────────────────────
+//  SYNTAX HIGHLIGHTER  (simple & robust)
+// ────────────────────────────────────────
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+function sp(cls, txt) {
+  return `<span class="tok-${cls}">${txt}</span>`;
+}
+
+function highlight(code, ext) {
+  try {
+    switch(ext) {
+      case 'html': case 'htm': return hlHTML(code);
+      case 'css':              return hlCSS(code);
+      case 'js': case 'ts': case 'jsx': case 'tsx': case 'mjs': return hlJS(code);
+      case 'py':               return hlPython(code);
+      case 'json':             return hlJSON(code);
+      default:                 return escapeHtml(code);
+    }
+  } catch(e) {
+    return escapeHtml(code);
+  }
+}
+
+// ── Segment-based tokenizer (no named groups) ──
+// Processes code left→right, picks earliest match each time
+function tokenizeCode(code, rules) {
+  let out = '';
+  let pos = 0;
+  const len = code.length;
+
+  while (pos < len) {
+    let best = null, bestIdx = Infinity, bestLen = 0, bestRule = null;
+
+    for (const rule of rules) {
+      rule.re.lastIndex = pos;
+      const m = rule.re.exec(code);
+      if (m && m.index < bestIdx) {
+        bestIdx = m.index;
+        bestLen = m[0].length;
+        bestRule = rule;
+        best = m[0];
+      }
+    }
+
+    if (!bestRule || bestIdx >= len) {
+      out += escapeHtml(code.slice(pos));
+      break;
+    }
+
+    // Text before match
+    if (bestIdx > pos) out += escapeHtml(code.slice(pos, bestIdx));
+
+    // Apply rule
+    out += bestRule.fn(best);
+    pos = bestIdx + bestLen;
+    if (bestLen === 0) pos++; // safety
+  }
+  return out;
+}
+
+// ── HTML ──
+function hlHTML(code) {
+  const rules = [
+    { re: /<!--[\s\S]*?-->/g,
+      fn: t => sp('comment', escapeHtml(t)) },
+    { re: /<!DOCTYPE[^>]*>/ig,
+      fn: t => sp('doctype', escapeHtml(t)) },
+    { re: /<script\b[\s\S]*?<\/script>/ig,
+      fn: t => {
+        const om = t.match(/^<script[^>]*>/i);
+        const cm = t.match(/<\/script>$/i);
+        if (!om || !cm) return sp('tag', escapeHtml(t));
+        const inner = t.slice(om[0].length, t.length - cm[0].length);
+        return colorHTMLTag(om[0]) + hlJS(inner) + sp('tag', escapeHtml(cm[0]));
+      }},
+    { re: /<style\b[\s\S]*?<\/style>/ig,
+      fn: t => {
+        const om = t.match(/^<style[^>]*>/i);
+        const cm = t.match(/<\/style>$/i);
+        if (!om || !cm) return sp('tag', escapeHtml(t));
+        const inner = t.slice(om[0].length, t.length - cm[0].length);
+        return colorHTMLTag(om[0]) + hlCSS(inner) + sp('tag', escapeHtml(cm[0]));
+      }},
+    { re: /<\/[\w-]+>/g,
+      fn: t => sp('tag', escapeHtml(t)) },
+    { re: /<[\w-]+(\s[^>]*)?\/?>/g,
+      fn: t => colorHTMLTag(t) },
+    { re: /&[a-zA-Z0-9#]+;/g,
+      fn: t => sp('number', escapeHtml(t)) },
+  ];
+  return tokenizeCode(code, rules);
+}
+
+function colorHTMLTag(t) {
+  // t = raw tag like <div class="foo">
+  let out = escapeHtml(t);
+  // color tag name
+  out = out.replace(/^(&lt;\/?)([\w-]+)/, (_, a, b) =>
+    `${a}${sp('tag', b)}`);
+  // color attr=value
+  out = out.replace(/([\w:-]+)(\s*=\s*)((?:&quot;[^&]*&quot;|'[^']*'|\S+))/g, (_, a, eq, v) =>
+    `${sp('attr', a)}${eq}${sp('string', v)}`);
+  // standalone attrs (no value)
+  out = out.replace(/\s([\w:-]+)(?=\s|&gt;|\/&gt;)/g, (_, a) =>
+    ` ${sp('attr', a)}`);
+  return out;
+}
+
+// ── CSS ──
+function hlCSS(code) {
+  const rules = [
+    { re: /\/\*[\s\S]*?\*\//g,
+      fn: t => sp('comment', escapeHtml(t)) },
+    { re: /"[^"]*"|'[^']*'/g,
+      fn: t => sp('string', escapeHtml(t)) },
+    { re: /#[0-9a-fA-F]{3,8}\b/g,
+      fn: t => `<span class="tok-number" style="outline:2px solid ${t};outline-offset:1px;border-radius:2px">${escapeHtml(t)}</span>` },
+    { re: /\b\d+\.?\d*(%|px|em|rem|vh|vw|vmin|vmax|pt|pc|cm|mm|in|s|ms|deg|rad|turn)?\b/g,
+      fn: t => sp('number', escapeHtml(t)) },
+    { re: /([-\w]+)\s*(?=:(?:[^:]))/g,
+      fn: t => sp('property', escapeHtml(t)) },
+    { re: /[.#:][\w-]+(?::[\w-]+)?|[\w-]+(?=\s*[{,])/g,
+      fn: t => sp('selector', escapeHtml(t)) },
+    { re: /[{}();,]/g,
+      fn: t => sp('bracket', escapeHtml(t)) },
+    { re: /!important/g,
+      fn: t => sp('keyword', escapeHtml(t)) },
+    { re: /@[\w-]+/g,
+      fn: t => sp('keyword', escapeHtml(t)) },
+  ];
+  return tokenizeCode(code, rules);
+}
+
+// ── JavaScript ──
+const JS_KW = /\b(const|let|var|function|return|if|else|for|while|do|switch|case|break|continue|new|this|typeof|instanceof|in|of|class|extends|import|export|default|from|async|await|try|catch|finally|throw|null|undefined|true|false|void|delete|yield|static|get|set|super|with|debugger|enum|interface|type|as|keyof|readonly|declare|abstract|satisfies)\b/g;
+const JS_BI = /\b(console|window|document|Array|Object|String|Number|Boolean|Promise|Math|JSON|Date|Error|Map|Set|Symbol|Proxy|Reflect|parseInt|parseFloat|isNaN|isFinite|setTimeout|setInterval|clearTimeout|clearInterval|fetch|alert|confirm|prompt|require|module|exports|process|Buffer|globalThis|localStorage|sessionStorage|navigator|location|history|URL|RegExp|WeakMap|WeakSet|Iterator)\b/g;
+
+function hlJS(code) {
+  const rules = [
+    { re: /\/\/[^\n]*/g,
+      fn: t => sp('comment', escapeHtml(t)) },
+    { re: /\/\*[\s\S]*?\*\//g,
+      fn: t => sp('comment', escapeHtml(t)) },
+    { re: /`(?:[^`\\]|\\.|\$\{[^}]*\})*`/g,
+      fn: t => sp('string', escapeHtml(t)) },
+    { re: /"(?:[^"\\]|\\.)*"/g,
+      fn: t => sp('string', escapeHtml(t)) },
+    { re: /'(?:[^'\\]|\\.)*'/g,
+      fn: t => sp('string', escapeHtml(t)) },
+    { re: /\b\d+\.?\d*([eE][+-]?\d+)?\b/g,
+      fn: t => sp('number', escapeHtml(t)) },
+    { re: /\b(const|let|var|function|return|if|else|for|while|do|switch|case|break|continue|new|this|typeof|instanceof|in|of|class|extends|import|export|default|from|async|await|try|catch|finally|throw|null|undefined|true|false|void|delete|yield|static|get|set|super|with|debugger|enum|interface|type|as|keyof|readonly|declare|abstract)\b/g,
+      fn: t => sp('keyword', escapeHtml(t)) },
+    { re: /\b(console|window|document|Array|Object|String|Number|Boolean|Promise|Math|JSON|Date|Error|Map|Set|Symbol|parseInt|parseFloat|isNaN|isFinite|setTimeout|setInterval|clearTimeout|clearInterval|fetch|alert|confirm|prompt|require|module|exports|process|globalThis|localStorage|sessionStorage|navigator)\b/g,
+      fn: t => sp('builtin', escapeHtml(t)) },
+    { re: /[a-zA-Z_$][\w$]*(?=\s*\()/g,
+      fn: t => sp('function', escapeHtml(t)) },
+    { re: /\b[A-Z][A-Z0-9_]*\b|\b[A-Z][a-zA-Z0-9_]+\b/g,
+      fn: t => sp('def', escapeHtml(t)) },
+    { re: /[+\-*/%=<>!&|^~?:]+/g,
+      fn: t => sp('operator', escapeHtml(t)) },
+    { re: /[{}[\]()]/g,
+      fn: t => sp('bracket', escapeHtml(t)) },
+  ];
+  return tokenizeCode(code, rules);
+}
+
+// ── Python ──
+function hlPython(code) {
+  const rules = [
+    { re: /#[^\n]*/g,
+      fn: t => sp('comment', escapeHtml(t)) },
+    { re: /"""[\s\S]*?"""|'''[\s\S]*?'''/g,
+      fn: t => sp('string', escapeHtml(t)) },
+    { re: /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g,
+      fn: t => sp('string', escapeHtml(t)) },
+    { re: /\b\d+\.?\d*([eE][+-]?\d+)?\b/g,
+      fn: t => sp('number', escapeHtml(t)) },
+    { re: /\b(def|class|return|if|elif|else|for|while|in|not|and|or|import|from|as|with|try|except|finally|raise|pass|break|continue|lambda|yield|global|nonlocal|del|assert|None|True|False|is|async|await)\b/g,
+      fn: t => sp('keyword', escapeHtml(t)) },
+    { re: /\b(self|cls|print|len|range|type|isinstance|super|property|staticmethod|classmethod|list|dict|set|tuple|str|int|float|bool|open|zip|map|filter|enumerate|sorted|reversed|min|max|sum|abs|round|input|format|repr|id|dir)\b/g,
+      fn: t => sp('builtin', escapeHtml(t)) },
+    { re: /[a-zA-Z_][\w]*(?=\s*\()/g,
+      fn: t => sp('function', escapeHtml(t)) },
+    { re: /\b[A-Z][a-zA-Z0-9_]+\b/g,
+      fn: t => sp('def', escapeHtml(t)) },
+    { re: /[+\-*/%=<>!&|^~@]+/g,
+      fn: t => sp('operator', escapeHtml(t)) },
+    { re: /[{}[\]()]/g,
+      fn: t => sp('bracket', escapeHtml(t)) },
+  ];
+  return tokenizeCode(code, rules);
+}
+
+// ── JSON ──
+function hlJSON(code) {
+  const rules = [
+    { re: /"(?:[^"\\]|\\.)*"\s*(?=:)/g,
+      fn: t => sp('attr', escapeHtml(t)) },
+    { re: /"(?:[^"\\]|\\.)*"/g,
+      fn: t => sp('string', escapeHtml(t)) },
+    { re: /\b(true|false|null)\b/g,
+      fn: t => sp('keyword', escapeHtml(t)) },
+    { re: /-?\d+\.?\d*([eE][+-]?\d+)?/g,
+      fn: t => sp('number', escapeHtml(t)) },
+    { re: /[{}[\]]/g,
+      fn: t => sp('bracket', escapeHtml(t)) },
+    { re: /[:,]/g,
+      fn: t => sp('operator', escapeHtml(t)) },
+  ];
+  return tokenizeCode(code, rules);
+}
+
+// (JSON highlighter defined above in token-based section)
+
+// (JSON highlighter defined above in token-based section)
+
+// ────────────────────────────────────────
+//  CODE RENDER
+// ────────────────────────────────────────
+function renderCode() {
+  const file = getActiveFile();
+  const empty = $('emptyState');
+  const editor = $('codeEditor');
+  const preview = $('livePreview');
+
+  if (!file) {
+    empty.style.display = 'flex';
+    editor.style.display = 'none';
+    preview.style.display = 'none';
+    $('saveBtn').style.display = 'none';
+    $('statLines').textContent = '—';
+    $('statChars').textContent = '—';
+    $('statFile').textContent = 'None';
+    $('statSize').textContent = '—';
+    $('statMode').textContent = '';
+    return;
+  }
+
+  empty.style.display = 'none';
+
+  if (state.mode === 'edit') {
+    editor.style.display = 'flex';
+    preview.style.display = 'none';
+    $('saveBtn').style.display = 'inline-flex';
+    loadEditor(file);
+  } else if (state.mode === 'preview') {
+    editor.style.display = 'none';
+    preview.style.display = 'flex';
+    refreshPreview();
+  }
+
+  // Status bar
+  const lines = file.content.split('\n');
+  $('statLines').textContent = lines.length.toLocaleString();
+  $('statChars').textContent = file.content.length.toLocaleString();
+  $('statFile').textContent = file.name;
+  $('statSize').textContent = formatSize(file.size);
+}
+
+function formatSize(bytes) {
+  if (!bytes && bytes !== 0) return '—';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1048576).toFixed(1) + ' MB';
+}
+
+// ────────────────────────────────────────
+//  RENDER ALL
+// ────────────────────────────────────────
+function renderAll() {
+  renderFileTree();
+  renderTabs();
+  renderCode();
+}
+
+// ────────────────────────────────────────
+//  SEARCH
+// ────────────────────────────────────────
+$('searchInput').addEventListener('input', function() {
+  state.searchQuery = this.value;
+  renderCode();
+});
+
+// ────────────────────────────────────────
+//  INTERCEPT COPY — strip HTML tags always
+// ────────────────────────────────────────
+function interceptCopy(e) {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  // Get plain text from selection — strip all HTML spans
+  const container = document.createElement('div');
+  container.appendChild(sel.getRangeAt(0).cloneContents());
+  // Remove line-number cells
+  container.querySelectorAll('.line-num').forEach(el => el.remove());
+  const plainText = container.innerText || container.textContent || '';
+  if (plainText) {
+    e.preventDefault();
+    e.clipboardData.setData('text/plain', plainText);
+    e.clipboardData.setData('text/html', plainText);
+    showToast('Code copied!');
+  }
+}
+
+// ────────────────────────────────────────
+//  3-DOT FILE MENU
+// ────────────────────────────────────────
+function toggleFileMenu(fileId) {
+  const drop = $('fdrop-' + fileId);
+  if (!drop) return;
+  const isOpen = drop.classList.contains('open');
+  closeAllMenus();
+  if (!isOpen) drop.classList.add('open');
+}
+
+function closeAllMenus() {
+  document.querySelectorAll('.file-dropdown.open').forEach(d => d.classList.remove('open'));
+}
+
+// Close menus when clicking outside
+document.addEventListener('click', e => {
+  if (!e.target.closest('.file-menu-wrap')) closeAllMenus();
+});
+
+function downloadFileById(fileId) {
+  const file = getLiveFile(fileId);
+  if (!file) return;
+  const blob = new Blob([file.content], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = file.name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast(`Downloaded ${file.name}`);
+}
+
+// ────────────────────────────────────────
+//  COPY  (always plain text — never HTML)
+// ────────────────────────────────────────
+function copyAllCode() {
+  const file = getActiveFile();
+  if (!file) { showToast('No file open', true); return; }
+  navigator.clipboard.writeText(file.content).then(() => {
+    const btn = $('copyBtnInline');
+    if (btn) { btn.classList.add('copied'); btn.innerHTML = '<span>✓</span><span>Copied!</span>'; setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = '<span>⎘</span><span>Copy</span>'; }, 2000); }
+    const btn2 = $('copyAllBtn');
+    if (btn2) { btn2.classList.add('copied'); btn2.textContent = '✓ Copied!'; setTimeout(() => { btn2.classList.remove('copied'); btn2.textContent = '⎘ Copy All'; }, 2000); }
+    showToast('Code copied!');
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = file.content;
+    ta.style.cssText = 'position:fixed;left:-9999px;';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('Code copied!');
+  });
+}
+
+function selectAllCode() {
+  // Always copy plain text — never the HTML markup
+  const file = getActiveFile();
+  if (!file) { showToast('No file to copy', true); return; }
+  navigator.clipboard.writeText(file.content).then(() => {
+    showToast('Code copied!');
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = file.content;
+    ta.style.cssText = 'position:fixed;left:-9999px;opacity:0;';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('Code copied!');
+  });
+}
+
+// ────────────────────────────────────────
+//  DOWNLOAD FILE
+// ────────────────────────────────────────
+function downloadCurrentFile() {
+  const file = getActiveFile();
+  if (!file) { showToast('No file open', true); return; }
+  const blob = new Blob([file.content], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = file.name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast(`Downloaded ${file.name}`);
+}
+
+// ────────────────────────────────────────
+//  DOWNLOAD FOLDER AS ZIP (pure JS, no lib)
+// ────────────────────────────────────────
+// Simple ZIP implementation (store only, no compression)
+function makeZip(files) {
+  // files: [{name, content (string)}]
+  const enc = new TextEncoder();
+  const parts = [];
+  const centralDir = [];
+  let offset = 0;
+
+  files.forEach(f => {
+    const nameBytes = enc.encode(f.name);
+    const dataBytes = enc.encode(f.content);
+    const crc = crc32(dataBytes);
+    const localHeader = buildLocalHeader(nameBytes, dataBytes.length, crc);
+
+    parts.push(localHeader, dataBytes);
+
+    centralDir.push(buildCentralHeader(nameBytes, dataBytes.length, crc, offset));
+    offset += localHeader.length + dataBytes.length;
+  });
+
+  const cdSize = centralDir.reduce((s, b) => s + b.length, 0);
+  const eocd = buildEOCD(files.length, cdSize, offset);
+
+  const allParts = [...parts, ...centralDir, eocd];
+  const totalLen = allParts.reduce((s, b) => s + b.length, 0);
+  const result = new Uint8Array(totalLen);
+  let pos = 0;
+  allParts.forEach(p => { result.set(p, pos); pos += p.length; });
+  return result;
+}
+
+function ui32(n) {
+  const b = new Uint8Array(4);
+  b[0] = n & 0xff; b[1] = (n >> 8) & 0xff; b[2] = (n >> 16) & 0xff; b[3] = (n >> 24) & 0xff;
+  return b;
+}
+function ui16(n) {
+  return new Uint8Array([n & 0xff, (n >> 8) & 0xff]);
+}
+
+function buildLocalHeader(nameBytes, size, crc) {
+  const h = new Uint8Array(30 + nameBytes.length);
+  let p = 0;
+  const w = (b) => { h.set(b, p); p += b.length; };
+  w(new Uint8Array([0x50,0x4b,0x03,0x04])); // sig
+  w(ui16(20)); // version
+  w(ui16(0));  // flags
+  w(ui16(0));  // compression (store)
+  w(ui16(0)); w(ui16(0)); // mod time/date
+  w(ui32(crc));
+  w(ui32(size)); w(ui32(size));
+  w(ui16(nameBytes.length)); w(ui16(0));
+  w(nameBytes);
+  return h;
+}
+
+function buildCentralHeader(nameBytes, size, crc, offset) {
+  const h = new Uint8Array(46 + nameBytes.length);
+  let p = 0;
+  const w = (b) => { h.set(b, p); p += b.length; };
+  w(new Uint8Array([0x50,0x4b,0x01,0x02]));
+  w(ui16(20)); w(ui16(20));
+  w(ui16(0)); w(ui16(0));
+  w(ui16(0)); w(ui16(0)); w(ui16(0));
+  w(ui32(crc));
+  w(ui32(size)); w(ui32(size));
+  w(ui16(nameBytes.length)); w(ui16(0)); w(ui16(0));
+  w(ui16(0)); w(ui16(0));
+  w(ui32(0)); w(ui32(offset));
+  w(nameBytes);
+  return h;
+}
+
+function buildEOCD(count, cdSize, cdOffset) {
+  const h = new Uint8Array(22);
+  let p = 0;
+  const w = (b) => { h.set(b, p); p += b.length; };
+  w(new Uint8Array([0x50,0x4b,0x05,0x06]));
+  w(ui16(0)); w(ui16(0));
+  w(ui16(count)); w(ui16(count));
+  w(ui32(cdSize));
+  w(ui32(cdOffset));
+  w(ui16(0));
+  return h;
+}
+
+// Simple CRC32
+function crc32(data) {
+  let crc = 0xFFFFFFFF;
+  const table = crc32Table();
+  for (let i = 0; i < data.length; i++) {
+    crc = (crc >>> 8) ^ table[(crc ^ data[i]) & 0xff];
+  }
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+let _crc32Table = null;
+function crc32Table() {
+  if (_crc32Table) return _crc32Table;
+  _crc32Table = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let j = 0; j < 8; j++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    _crc32Table[i] = c;
+  }
+  return _crc32Table;
+}
+
+function downloadFolder(folderId) {
+  const folder = state.folders.find(f => f.id === folderId);
+  if (!folder || folder.files.length === 0) { showToast('Folder is empty', true); return; }
+  const zipFiles = folder.files.map(f => ({ name: f.name, content: f.content }));
+  const zipData = makeZip(zipFiles);
+  const blob = new Blob([zipData], { type: 'application/zip' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = folder.name.replace('📂 ', '').replace(/\s/g, '-') + '.zip';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast(`Downloaded ${folder.files.length} files as ZIP`);
+}
+
+function downloadAllFolders() {
+  const allFiles = [];
+  state.folders.forEach(folder => {
+    folder.files.forEach(f => {
+      const prefix = folder.id === 'default' ? '' : folder.name.replace('📂 ', '').replace(/\s/g, '-') + '/';
+      allFiles.push({ name: prefix + f.name, content: f.content });
+    });
+  });
+  if (allFiles.length === 0) { showToast('No files to download', true); return; }
+  const zipData = makeZip(allFiles);
+  const blob = new Blob([zipData], { type: 'application/zip' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'devvault-project.zip';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast(`Downloaded ${allFiles.length} files as ZIP`);
+}
+
+// ────────────────────────────────────────
+//  SAVE HOOKS
+// ────────────────────────────────────────
+['createFolder','deleteFolder','createNewFile','deleteFile','closeTab'].forEach(fname => {
+  const orig = window[fname];
+  if (orig) window[fname] = function(...args) { const r = orig.apply(this,args); scheduleSave(); return r; };
+});
+
+// ────────────────────────────────────────
+//  INIT
+// ────────────────────────────────────────
+renderAll();
+if (_savedState) {
+  const totalFiles = state.folders.reduce((s,f) => s + f.files.length, 0);
+  if (totalFiles > 0) showToast(`${totalFiles} file${totalFiles>1?'s':''} restored from saved session`);
+}
+</script>
+</body>
+</html>
